@@ -1,14 +1,16 @@
 学习自：https://blog.csdn.net/weixin_45954454/article/details/114519299
 仅仅用作学习笔记。
-########手写数字数据集##########
+########cifar10数据集##########
 ###########保存模型############
-########1层隐含层（全连接层）##########
-#60000条训练数据和10000条测试数据，28x28像素的灰度图像
+########卷积神经网络##########
+#train_x:(50000, 32, 32, 3), train_y:(50000, 1), test_x:(10000, 32, 32, 3), test_y:(10000, 1)
+#60000条训练数据和10000条测试数据，32x32像素的RGB图像
+#第一层两个卷积层16个3*3卷积核，一个池化层：最大池化法2*2卷积核，激活函数：ReLU
+#第二层两个卷积层32个3*3卷积核，一个池化层：最大池化法2*2卷积核，激活函数：ReLU
 #隐含层激活函数：ReLU函数
 #输出层激活函数：softmax函数（实现多分类）
 #损失函数：稀疏交叉熵损失函数
-#输入层有784个节点，隐含层有128个神经元，输出层有10个节点
-import torch
+#隐含层有128个神经元，输出层有10个节点
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,30 +20,38 @@ print('--------------')
 nowtime = time.strftime('%Y-%m-%d %H:%M:%S')
 print(nowtime)
 
-#指定GPU
-#import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 #初始化
 plt.rcParams['font.sans-serif'] = ['SimHei']
 
 #加载数据
-mnist = tf.keras.datasets.mnist
-(train_x,train_y),(test_x,test_y) = mnist.load_data()
+cifar10 = tf.keras.datasets.cifar10
+(train_x,train_y),(test_x,test_y) = cifar10.load_data()
 print('\n train_x:%s, train_y:%s, test_x:%s, test_y:%s'%(train_x.shape,train_y.shape,test_x.shape,test_y.shape)) 
 
 #数据预处理
-#X_train = train_x.reshape((60000,28*28))
-#Y_train = train_y.reshape((60000,28*28))       #后面采用tf.keras.layers.Flatten()改变数组形状
 X_train,X_test = tf.cast(train_x/255.0,tf.float32),tf.cast(test_x/255.0,tf.float32)     #归一化
 y_train,y_test = tf.cast(train_y,tf.int16),tf.cast(test_y,tf.int16)
 
+
 #建立模型
 model = tf.keras.Sequential()
-model.add(tf.keras.layers.Flatten(input_shape=(28,28)))     #添加Flatten层说明输入数据的形状
-model.add(tf.keras.layers.Dense(128,activation='relu'))     #添加隐含层，为全连接层，128个节点，relu激活函数
-model.add(tf.keras.layers.Dense(10,activation='softmax'))   #添加输出层，为全连接层，10个节点，softmax激活函数
-print('\n',model.summary())     #查看网络结构和参数信息
+##特征提取阶段
+#第一层
+model.add(tf.keras.layers.Conv2D(16,kernel_size=(3,3),padding='same',activation=tf.nn.relu,data_format='channels_last',input_shape=X_train.shape[1:]))  #卷积层，16个卷积核，大小（3，3），保持原图像大小，relu激活函数，输入形状（28，28，1）
+model.add(tf.keras.layers.Conv2D(16,kernel_size=(3,3),padding='same',activation=tf.nn.relu))
+model.add(tf.keras.layers.MaxPool2D(pool_size=(2,2)))   #池化层，最大值池化，卷积核（2，2）
+#第二层
+model.add(tf.keras.layers.Conv2D(32,kernel_size=(3,3),padding='same',activation=tf.nn.relu))
+model.add(tf.keras.layers.Conv2D(32,kernel_size=(3,3),padding='same',activation=tf.nn.relu))
+model.add(tf.keras.layers.MaxPool2D(pool_size=(2,2)))
+##分类识别阶段
+#第三层
+model.add(tf.keras.layers.Flatten())    #改变输入形状
+#第四层
+model.add(tf.keras.layers.Dense(128,activation='relu'))     #全连接网络层，128个神经元，relu激活函数
+model.add(tf.keras.layers.Dense(10,activation='softmax'))   #输出层，10个节点
+print(model.summary())      #查看网络结构和参数信息
 
 #配置模型训练方法
 #adam算法参数采用keras默认的公开参数，损失函数采用稀疏交叉熵损失函数，准确率采用稀疏分类准确率函数
@@ -58,14 +68,12 @@ history = model.fit(X_train,y_train,batch_size=64,epochs=5,validation_split=0.2)
 print('--------------')
 nowtime = time.strftime('%Y-%m-%d %H:%M:%S')
 print('训练后时刻：'+str(nowtime))
+
 #评估模型
 model.evaluate(X_test,y_test,verbose=2)     #每次迭代输出一条记录，来评价该模型是否有比较好的泛化能力
 
-#保存模型参数
-#model.save_weights('C:\\Users\\xuyansong\\Desktop\\深度学习\\python\\MNIST\\模型参数\\mnist_weights.h5')
 #保存整个模型
-model.save('mnist_weights.h5')
-
+model.save('CIFAR10_CNN_weights.h5')
 
 #结果可视化
 print(history.history)
@@ -103,7 +111,7 @@ for i in range(10):
     plt.subplot(2,5,i+1)
     plt.axis('off')
     plt.imshow(test_x[num],cmap='gray')
-    demo = tf.reshape(X_test[num],(1,28,28))
+    demo = tf.reshape(X_test[num],(1,32,32,3))
     y_pred = np.argmax(model.predict(demo))
     plt.title('标签值：'+str(test_y[num])+'\n预测值：'+str(y_pred))
 #y_pred = np.argmax(model.predict(X_test[0:5]),axis=1)
@@ -114,3 +122,4 @@ for i in range(10):
 plt.show()
 #plt.pause(5)
 #plt.close()
+
