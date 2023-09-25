@@ -52,3 +52,7 @@ train_dataset=ants_dataset+bees_dataset
 ## TensorBoard的使用
 terminal进入pytorch：`conda activate pytorch`C:\\Users\\czh31\\基础学习\\Tensorboard\\logs
 不知道为什么打不开
+![image](https://github.com/chenzhh253/chenzhenghan/assets/145008761/46d4e4a6-2315-4ab7-910b-85a64825510e)
+
+![image](https://github.com/chenzhh253/chenzhenghan/assets/145008761/c69d1315-48ff-4f95-bed1-546debf470fc)
+
